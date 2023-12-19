@@ -1,50 +1,40 @@
+mod config;      // Import the config module
+mod websocket;   // Import the websocket module
+
 use tokio::sync::mpsc;
 use tokio::runtime::Runtime;
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use url::Url;
-use futures::StreamExt;
-
-use std::collections::HashMap;
-
-struct AppConfig {
-    active_ticker: String,
-    available_tickers: HashMap<String, String>,
-}
+use config::init_config;
+use websocket::process_websocket; // Import the process_websocket function
 
 
-async fn process_websocket(config: AppConfig, tx: tokio::sync::mpsc::Sender<String>) {
-    let url = &config.available_tickers[&config.active_ticker];
-    let url = Url::parse(url).expect("Failed to parse URL");
 
-    let (mut socket, _) = connect_async(url)
-        .await
-        .expect("Failed to connect");
+// async fn process_websocket(config: AppConfig, tx: tokio::sync::mpsc::Sender<String>) {
+//     let url = &config.available_tickers[&config.active_ticker];
+//     let url = Url::parse(url).expect("Failed to parse URL");
 
-    println!("Connected to the WebSocket stream.");
+//     let (mut socket, _) = connect_async(url)
+//         .await
+//         .expect("Failed to connect");
 
-    while let Some(message) = socket.next().await {
-        match message {
-            Ok(msg) => {
-                if let Message::Text(text) = msg {
-                    tx.send(text).await.unwrap();
-                }
-            }
-            Err(e) => {
-                eprintln!("Error: {}", e);
-                break;
-            }
-        }
-    }
-}
+//     println!("Connected to the WebSocket stream.");
+
+//     while let Some(message) = socket.next().await {
+//         match message {
+//             Ok(msg) => {
+//                 if let Message::Text(text) = msg {
+//                     tx.send(text).await.unwrap();
+//                 }
+//             }
+//             Err(e) => {
+//                 eprintln!("Error: {}", e);
+//                 break;
+//             }
+//         }
+//     }
+// }
 
 fn main() {
-    let mut app_config = AppConfig {
-        active_ticker: "btcusdt".to_string(),
-        available_tickers: HashMap::new(),
-    };
-
-    app_config.available_tickers.insert("btcusdt".to_string(), "wss://stream.binance.com:9443/ws/btcusdt@trade".to_string());
-    app_config.available_tickers.insert("ethusdt".to_string(), "wss://stream.binance.com:9443/ws/ethusdt@trade".to_string());
+    let app_config = init_config();
 
     // Create a multi-threaded Tokio runtime
     let rt = Runtime::new().unwrap();
